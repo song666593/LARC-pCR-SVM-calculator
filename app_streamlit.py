@@ -27,6 +27,36 @@ st.set_page_config(
     layout="centered",
 )
 
+st.markdown(
+    """
+<style>
+  /* 标题略收一点，避免压过正文 */
+  h1 {
+    font-size: 1.65rem !important;
+    line-height: 1.35 !important;
+    margin-bottom: 1.1rem !important;
+  }
+  /* 6 个输入变量标签加大 */
+  div[data-testid="stNumberInput"] label p {
+    font-size: 1.12rem !important;
+    font-weight: 650 !important;
+    color: #1e293b !important;
+    line-height: 1.45 !important;
+  }
+  /* 输入框内数字稍大 */
+  div[data-testid="stNumberInput"] input {
+    font-size: 1.05rem !important;
+  }
+  /* 按钮文字 */
+  div[data-testid="stButton"] button p {
+    font-size: 1.08rem !important;
+    font-weight: 650 !important;
+  }
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
 
 @st.cache_resource
 def load_artifacts():
@@ -77,9 +107,9 @@ if st.button("计算 pCR 概率", type="primary", use_container_width=True):
         pred = proba >= thr
         st.markdown(
             f"""
-<div style="text-align:center; margin: 0.8rem 0 0.4rem;">
-  <div style="font-size:1.15rem; color:#334155; font-weight:600;">预测 pCR 概率</div>
-  <div style="font-size:3.2rem; font-weight:800; color:#0f5c6b; line-height:1.15; margin-top:0.25rem;">
+<div style="text-align:center; margin: 0.9rem 0 0.45rem;">
+  <div style="font-size:1.25rem; color:#334155; font-weight:650;">预测 pCR 概率</div>
+  <div style="font-size:3.0rem; font-weight:800; color:#0f5c6b; line-height:1.15; margin-top:0.3rem;">
     {proba * 100:.2f}%
   </div>
 </div>
