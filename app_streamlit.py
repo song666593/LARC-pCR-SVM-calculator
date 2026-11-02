@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Streamlit 版在线计算器（便于部署到 Streamlit Community Cloud，获得公网 URL）。
-
-本地运行：
-  pip install streamlit joblib scikit-learn pandas numpy
-  streamlit run app_streamlit.py
+Streamlit 版在线计算器（便于部署到 Streamlit Community Cloud）。
 """
 from __future__ import annotations
 
@@ -30,27 +26,89 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-  /* 标题略收一点，避免压过正文 */
+  /* 页面整体 */
+  .block-container {
+    padding-top: 1.6rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 820px !important;
+  }
+
+  /* 标题：略收，避免压过输入区 */
   h1 {
-    font-size: 1.65rem !important;
-    line-height: 1.35 !important;
-    margin-bottom: 1.1rem !important;
+    font-size: 1.55rem !important;
+    font-weight: 750 !important;
+    line-height: 1.4 !important;
+    color: #0f3d4c !important;
+    text-align: center !important;
+    margin: 0 0 1.35rem 0 !important;
   }
-  /* 6 个输入变量标签加大 */
-  div[data-testid="stNumberInput"] label p {
-    font-size: 1.12rem !important;
-    font-weight: 650 !important;
-    color: #1e293b !important;
-    line-height: 1.45 !important;
+
+  /* 自定义变量名标签 */
+  .var-label {
+    font-size: 1.08rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.45;
+    margin: 0.15rem 0 0.35rem 0;
   }
-  /* 输入框内数字稍大 */
+  .var-hint {
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: #64748b;
+    margin-left: 0.15rem;
+  }
+
+  /* 输入框数字加大、高度统一 */
+  div[data-testid="stNumberInput"] label { display: none !important; }
   div[data-testid="stNumberInput"] input {
-    font-size: 1.05rem !important;
+    font-size: 1.18rem !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+    min-height: 2.75rem !important;
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
   }
-  /* 按钮文字 */
+  div[data-testid="stNumberInput"] {
+    margin-bottom: 0.85rem !important;
+  }
+
+  /* 按钮：医疗青绿，降低纯红压迫感 */
+  div[data-testid="stButton"] button {
+    background: linear-gradient(135deg, #0f5c6b, #1d8a7a) !important;
+    border: none !important;
+    color: #fff !important;
+    min-height: 3rem !important;
+    border-radius: 10px !important;
+    box-shadow: 0 6px 16px rgba(15, 92, 107, 0.18) !important;
+  }
   div[data-testid="stButton"] button p {
-    font-size: 1.08rem !important;
-    font-weight: 650 !important;
+    font-size: 1.12rem !important;
+    font-weight: 700 !important;
+  }
+  div[data-testid="stButton"] button:hover {
+    filter: brightness(1.05);
+  }
+
+  /* 结果区 */
+  .result-card {
+    margin-top: 0.9rem;
+    padding: 1.05rem 1rem 0.95rem;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f3fbf9 0%, #ffffff 100%);
+    border: 1px solid #cfe8e3;
+    text-align: center;
+  }
+  .result-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #334155;
+  }
+  .result-value {
+    font-size: 2.85rem;
+    font-weight: 800;
+    color: #0f5c6b;
+    line-height: 1.15;
+    margin: 0.35rem 0 0.55rem;
   }
 </style>
 """,
@@ -67,6 +125,13 @@ def load_artifacts():
     return model, meta
 
 
+def field_label(title: str, code: str) -> None:
+    st.markdown(
+        f'<div class="var-label">{title}<span class="var-hint">（{code}）</span></div>',
+        unsafe_allow_html=True,
+    )
+
+
 model, meta = load_artifacts()
 
 st.title("基于炎症代谢相关指标预测局部进展期直肠癌新辅助放化疗疗效预测器")
@@ -76,7 +141,6 @@ if model is None:
     st.stop()
 
 thr = float(meta.get("clinical_probability_threshold", 0.21))
-labels = meta.get("feature_labels_zh") or {}
 order = meta.get("feature_order") or [
     "pre-PLR",
     "post-LMR",
@@ -86,18 +150,34 @@ order = meta.get("feature_order") or [
     "∆TC",
 ]
 
+# 展示名：中文为主，英文代号作辅，避免一行过长显得碎
+DISPLAY = {
+    "pre-PLR": ("新辅助放化疗前血小板/淋巴细胞比值", "pre-PLR"),
+    "post-LMR": ("术前淋巴细胞/单核细胞比值", "post-LMR"),
+    "post-LYM": ("术前淋巴细胞计数", "post-LYM"),
+    "pre-GLB": ("新辅助放化疗前球蛋白", "pre-GLB, g/L"),
+    "pre-ALB": ("新辅助放化疗前白蛋白", "pre-ALB, g/L"),
+    "∆TC": ("总胆固醇变化量", "ΔTC"),
+}
+
 vals = {}
-cols = st.columns(2)
+left, right = st.columns(2, gap="large")
+half = (len(order) + 1) // 2
 for i, key in enumerate(order):
-    with cols[i % 2]:
+    col = left if i < half else right
+    title, code = DISPLAY.get(key, (key, key))
+    with col:
+        field_label(title, code)
         vals[key] = st.number_input(
-            labels.get(key, key),
+            label=key,
             value=None,
             placeholder="请输入数值",
-            format="%.6f",
+            format="%.4f",
             key=f"in_{i}",
+            label_visibility="collapsed",
         )
 
+st.write("")  # 一点间距
 if st.button("计算 pCR 概率", type="primary", use_container_width=True):
     if any(v is None for v in vals.values()):
         st.warning("请完整填写 6 项指标。")
@@ -105,18 +185,22 @@ if st.button("计算 pCR 概率", type="primary", use_container_width=True):
         X = pd.DataFrame([[vals[k] for k in order]], columns=order)
         proba = float(model.predict_proba(X)[0, 1])
         pred = proba >= thr
+        badge = (
+            f'<div style="display:inline-block;margin-top:.2rem;padding:.45rem .9rem;'
+            f'border-radius:999px;background:#d1fae5;color:#065f46;font-weight:700;font-size:1.02rem;">'
+            f'按阈值 {thr:.2f}：判为「预测 pCR 阳性」</div>'
+            if pred
+            else f'<div style="display:inline-block;margin-top:.2rem;padding:.45rem .9rem;'
+            f'border-radius:999px;background:#e2e8f0;color:#334155;font-weight:700;font-size:1.02rem;">'
+            f'按阈值 {thr:.2f}：判为「预测 pCR 阴性」</div>'
+        )
         st.markdown(
             f"""
-<div style="text-align:center; margin: 0.9rem 0 0.45rem;">
-  <div style="font-size:1.25rem; color:#334155; font-weight:650;">预测 pCR 概率</div>
-  <div style="font-size:3.0rem; font-weight:800; color:#0f5c6b; line-height:1.15; margin-top:0.3rem;">
-    {proba * 100:.2f}%
-  </div>
+<div class="result-card">
+  <div class="result-title">预测 pCR 概率</div>
+  <div class="result-value">{proba * 100:.2f}%</div>
+  {badge}
 </div>
 """,
             unsafe_allow_html=True,
         )
-        if pred:
-            st.success(f"按阈值 {thr:.2f}：判为「预测 pCR 阳性」")
-        else:
-            st.warning(f"按阈值 {thr:.2f}：判为「预测 pCR 阴性」")
