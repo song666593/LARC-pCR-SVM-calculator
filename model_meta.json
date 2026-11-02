@@ -1,0 +1,41 @@
+{
+  "title_zh": "局部进展期直肠癌新辅助放化疗后 pCR 在线预测工具（RBF-SVM）",
+  "feature_order": [
+    "pre-PLR",
+    "post-LMR",
+    "post-LYM",
+    "pre-GLB",
+    "pre-ALB",
+    "∆TC"
+  ],
+  "feature_labels_zh": {
+    "pre-PLR": "新辅助放化疗前血小板/淋巴细胞比值（pre-PLR）",
+    "post-LMR": "术前淋巴细胞/单核细胞比值（post-LMR）",
+    "post-LYM": "术前淋巴细胞计数（post-LYM）",
+    "pre-GLB": "新辅助放化疗前球蛋白（pre-GLB，g/L）",
+    "pre-ALB": "新辅助放化疗前白蛋白（pre-ALB，g/L）",
+    "∆TC": "总胆固醇变化量（ΔTC）"
+  },
+  "clinical_probability_threshold": 0.21,
+  "fit_on": "train",
+  "n_fit": 157,
+  "n_train": 157,
+  "n_val": 105,
+  "split_seed": 73,
+  "auc_train": 0.886,
+  "auc_val": 0.7855,
+  "model": {
+    "kernel": "rbf",
+    "C": 1.6,
+    "gamma": "scale",
+    "class_weight": "balanced",
+    "probability": true,
+    "random_state": 51
+  },
+  "preprocessing": [
+    "median_impute",
+    "winsor_1_99",
+    "standard_scaler"
+  ],
+  "note": "概率≥阈值0.21时判为「预测pCR阳性」，与论文验证集报告口径一致。本工具仅供科研辅助，不能替代病理诊断与临床决策；外推需外部验证。"
+}
